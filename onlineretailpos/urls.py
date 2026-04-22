@@ -24,6 +24,7 @@ from django.contrib.auth import views as auth_views
 from inventory import views as inventory_views
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.views.generic.base import RedirectView
+from django.conf.urls.static import static
 
 
 urlpatterns = [
@@ -83,3 +84,5 @@ urlpatterns = [
         # Static Files Serve WHEN Debug is False in DEV ENV
         re_path(r'^static/(?P<path>.*)$', serve,{'document_root': settings.STATIC_ROOT}),
     ] 
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
