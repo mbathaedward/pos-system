@@ -13,7 +13,7 @@ class product(models.Model):
     qty              = models.IntegerField(default=0,null=False)
     cost_price       = models.DecimalField(max_digits=7,decimal_places=2,default=0,null=False)
     tax_category     = models.ForeignKey("tax",on_delete=models.RESTRICT,null=False,blank=False)
-    deposit_category = models.ForeignKey("deposit",on_delete=models.RESTRICT,null=False,blank=False)
+    deposit_category = models.ForeignKey("deposit",on_delete=models.RESTRICT,null=True,blank=True)
     product_desc     = models.TextField(blank=True,null=True)
 
     def __str__(self) -> str:
@@ -26,7 +26,7 @@ class product(models.Model):
             ("Price", self.sales_price),
             ("Department Category",self.department.department_name),
             ("Tax Category",self.tax_category.tax_category),
-            ("Deposit Category",self.deposit_category.deposit_category),
+            ("Deposit Category", self.deposit_category.deposit_category if self.deposit_category else "None")
         ]
 
     def get_fields_2(self):
@@ -39,8 +39,8 @@ class product(models.Model):
             ("Department Category",self.department.department_name),
             ("Tax Category",self.tax_category.tax_category),
             ("Tax Percentage",self.tax_category.tax_percentage),
-            ("Deposit Category",self.deposit_category.deposit_category),
-            ("Deposit Value",self.deposit_category.deposit_value),
+            ("Deposit Category", self.deposit_category.deposit_category if self.deposit_category else "None"),
+            ("Deposit Value", self.deposit_category.deposit_value if self.deposit_category else 0),
         ]
 
 
@@ -70,7 +70,7 @@ class tax(models.Model):
 
 
 class deposit(models.Model):
-    deposit_category    = models.CharField(max_length=32,unique=True,null=False,blank=False)
+    deposit_category    = models.CharField(max_length=32,unique=True,null=True,blank=True)
     deposit_desc        = models.TextField(blank=True)
     deposit_value       = models.DecimalField(max_digits=7,decimal_places=2,null=False,blank=False)
 

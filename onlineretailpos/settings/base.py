@@ -22,7 +22,7 @@ CART_SESSION_ID = 'cart'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
-
+DEBUG = True
 
 # Application definition
 INSTALLED_APPS = [

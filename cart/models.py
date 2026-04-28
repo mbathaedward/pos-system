@@ -35,10 +35,10 @@ class Cart(object):
                                         'quantity' : quantity, 
                                         }
         self.cart[product.barcode]['tax_value'] = f"{product.sales_price * self.cart[product.barcode]['quantity']* (product.tax_category.tax_percentage/100):.2f}"
-        self.cart[product.barcode]['deposit_value'] = f"{self.cart[product.barcode]['quantity']* product.deposit_category.deposit_value:.2f}"
+        deposit = (product.deposit_category.deposit_value * self.cart[product.barcode]['quantity']) if product.deposit_category else 0
+        self.cart[product.barcode]['deposit_value'] = f"{deposit:.2f}"
         self.cart[product.barcode]['line_total'] = f"{(product.sales_price * self.cart[product.barcode]['quantity']) + Decimal(self.cart[product.barcode]['tax_value']) + Decimal(self.cart[product.barcode]['deposit_value']):.2f}"
         self.save()
-
     
     def save(self):
         # update the session cart
