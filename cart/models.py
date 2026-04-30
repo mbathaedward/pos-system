@@ -8,36 +8,52 @@ import pandas as pd
 from inventory.models import product as Product
 
 
+from decimal import Decimal
+
 class Cart(object):
     def __init__(self, request):
-        self.request            = request
-        self.session            = request.session
-        self.register_counter   = settings.CART_SESSION_ID 
+        self.request = request
+        self.session = request.session
+        self.register_counter = settings.CART_SESSION_ID 
         cart = self.session.get(self.register_counter)
+
         if not cart:
-            # save an empty cart in the session
             cart = self.session[self.register_counter] = {}
+
         self.cart = cart
 
     def add(self, product, quantity, action=None):
-        """
-        Add a product to the cart or update its quantity.
-        """
+        print("DEBUG PRICE:", product.sales_price)
+        print("DEBUG BARCODE:", product.barcode)
+        print("DEBUG QTY:", quantity)
+        
         if product.barcode in self.cart.keys():
-           self.cart[product.barcode]['quantity'] += quantity
-           if self.cart[product.barcode]['quantity'] == 0:
+            self.cart[product.barcode]['quantity'] += quantity
+            if self.cart[product.barcode]['quantity'] == 0:
                 self.remove(product)
                 return
         else:
-            self.cart[product.barcode] = {'barcode' : product.barcode,
-                                        'name': product.name,
-                                        'price': str(product.sales_price),
-                                        'quantity' : quantity, 
-                                        }
-        self.cart[product.barcode]['tax_value'] = f"{product.sales_price * self.cart[product.barcode]['quantity']* (product.tax_category.tax_percentage/100):.2f}"
+            self.cart[product.barcode] = {
+                'barcode': product.barcode,
+                'name': product.name,
+                'price': str(product.sales_price),
+                'quantity': quantity,
+            }
+
+        # TAX
+        tax = product.sales_price * self.cart[product.barcode]['quantity'] * (product.tax_category.tax_percentage / 100)
+        self.cart[product.barcode]['tax_value'] = f"{tax:.2f}"
+
+        #DEPOSIT (stored but NOT added to total)
         deposit = (product.deposit_category.deposit_value * self.cart[product.barcode]['quantity']) if product.deposit_category else 0
         self.cart[product.barcode]['deposit_value'] = f"{deposit:.2f}"
-        self.cart[product.barcode]['line_total'] = f"{(product.sales_price * self.cart[product.barcode]['quantity']) + Decimal(self.cart[product.barcode]['tax_value']) + Decimal(self.cart[product.barcode]['deposit_value']):.2f}"
+
+        #  FINAL TOTAL (FIXED)
+        price_total = product.sales_price * self.cart[product.barcode]['quantity']
+        line_total = price_total + Decimal(self.cart[product.barcode]['tax_value'])
+
+        self.cart[product.barcode]['line_total'] = f"{line_total:.2f}"
+
         self.save()
     
     def save(self):

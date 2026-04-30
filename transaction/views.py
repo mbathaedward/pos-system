@@ -161,7 +161,9 @@ def endTransaction(request, type, value):
                 return_transaction = addTransaction(request.user, "CASH", total, cart, value)
         if return_transaction:
             Cart(request).clear()
-            return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}&value={value}&total={total}")
+            # FIX 1: use return_transaction.total_sale so the redirect
+            # carries the corrected total, not the old line_total sum
+            return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}&value={value}&total={return_transaction.total_sale}")
         return redirect("register")
     except Exception as e:
         print(e, type, value, request.user)
@@ -199,8 +201,15 @@ def addTransaction(user, payment_type, total, cart, value):
         lambda x: f"{float(x):.2f}" if float(x or 0) > 0 else ""
     )
 
+    # FIX 2: calculate sub_total directly from price x quantity
+    cart_df["sub_total"] = cart_df["price"] * cart_df["quantity"]
+
+    sub_total     = round(cart_df["sub_total"].sum(), 2)
     tax_total     = round(cart_df["tax_value"].sum(), 2)
     deposit_total = round(cart_df["deposit_value"].sum(), 2)
+
+    # FIX 3: derive total from sub_total + tax_total, not from line_total
+    total = round(sub_total + tax_total, 2)
 
     # Build receipt
     def safe(val):
@@ -208,14 +217,15 @@ def addTransaction(user, payment_type, total, cart, value):
 
     receipt_lines = []
     for _, row in cart_df.iterrows():
+        # FIX 4: widen columns so price and deposit don't merge visually
         line = (
             f"{safe(row.name)+')':<3} {safe(row['name'])[:28]}".ljust(settings.RECEIPT_CHAR_COUNT)
             + "\n"
             + f" {safe(row['barcode']):<13}"
               f"{int(row['quantity']):>3}"
-              f"{float(row['price']):>7.2f}"
-              f"{row['deposit_display']:>6}"
-              f"{safe(row['tax']):>2}"
+              f"{float(row['price']):>10.2f}"
+              f"{row['deposit_display']:>8}"
+              f"{safe(row['tax']):>3}"
         )
         receipt_lines.append(line)
 
@@ -231,13 +241,14 @@ def addTransaction(user, payment_type, total, cart, value):
         + cart_string
     )
 
+    # FIX 5: use sub_total variable, not total - tax_total
     total_string = (
-        f"Sub-Total: {round(total - tax_total, 2)}  Tax-Total: {tax_total}"
+        f"Sub-Total: {sub_total}  Tax-Total: {tax_total}"
     ).center(settings.RECEIPT_CHAR_COUNT)
     total_string += "\n" + (" - " * int(settings.RECEIPT_CHAR_COUNT / 3)) + "\n"
     total_string += f"{'TOTAL SALE':>10}: {round(total, 2)}".rjust(settings.RECEIPT_CHAR_COUNT)
-    total_string += "\n" + f"{str(payment_type):>10}: $ {round(value, 2):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
-    total_string += "\n" + f"{'CHANGE':>10}: $ {round(value - total, 2):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
+    total_string += "\n" + f"{str(payment_type):>10}: ksh {round(value, 2):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
+    total_string += "\n" + f"{'CHANGE':>10}: ksh {round(value - total, 2):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
 
     receipt = (
         settings.RECEIPT_HEADER + "\n\n"
@@ -254,7 +265,7 @@ def addTransaction(user, payment_type, total, cart, value):
         transaction_dt=datetime.strptime(transaction_id[:-6], '%Y%m%d%H%M%S'),
         user=user,
         total_sale=total,
-        sub_total=round(total - tax_total, 2),
+        sub_total=sub_total,        # FIX 6: use sub_total, not total - tax_total
         tax_total=tax_total,
         deposit_total=deposit_total,
         payment_type=payment_type,
