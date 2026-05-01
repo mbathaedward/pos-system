@@ -209,7 +209,8 @@ def addTransaction(user, payment_type, total, cart, value):
     deposit_total = round(cart_df["deposit_value"].sum(), 2)
 
     # FIX 3: derive total from sub_total + tax_total, not from line_total
-    total = round(sub_total + tax_total, 2)
+    #total = round(sub_total + tax_total, 2)
+    total = sub_total
 
     # Build receipt
     def safe(val):
@@ -241,7 +242,7 @@ def addTransaction(user, payment_type, total, cart, value):
         + cart_string
     )
 
-    # FIX 5: use sub_total variable, not total - tax_total
+    #  use sub_total variable, not total - tax_total
     total_string = (
         f"Sub-Total: {sub_total}  Tax-Total: {tax_total}"
     ).center(settings.RECEIPT_CHAR_COUNT)
@@ -265,7 +266,7 @@ def addTransaction(user, payment_type, total, cart, value):
         transaction_dt=datetime.strptime(transaction_id[:-6], '%Y%m%d%H%M%S'),
         user=user,
         total_sale=total,
-        sub_total=sub_total,        # FIX 6: use sub_total, not total - tax_total
+        sub_total=sub_total,       
         tax_total=tax_total,
         deposit_total=deposit_total,
         payment_type=payment_type,

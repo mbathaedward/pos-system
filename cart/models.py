@@ -41,8 +41,13 @@ class Cart(object):
             }
 
         # TAX
-        tax = product.sales_price * self.cart[product.barcode]['quantity'] * (product.tax_category.tax_percentage / 100)
+        tax_rate = product.tax_category.tax_percentage / 100
+        price = product.sales_price
+        qty = self.cart[product.barcode]['quantity']
+        tax_per_item = price - (price / (1 + tax_rate))
+        tax = tax_per_item * qty
         self.cart[product.barcode]['tax_value'] = f"{tax:.2f}"
+
 
         #DEPOSIT (stored but NOT added to total)
         deposit = (product.deposit_category.deposit_value * self.cart[product.barcode]['quantity']) if product.deposit_category else 0
@@ -50,7 +55,8 @@ class Cart(object):
 
         #  FINAL TOTAL (FIXED)
         price_total = product.sales_price * self.cart[product.barcode]['quantity']
-        line_total = price_total + Decimal(self.cart[product.barcode]['tax_value'])
+        line_total = price * qty
+
 
         self.cart[product.barcode]['line_total'] = f"{line_total:.2f}"
 
