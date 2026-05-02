@@ -39,6 +39,7 @@ Transactions | Online Retail POS
                             <td>{{ i.transaction_id }}</td>
                             <td>{{ i.total_sale }}</td>
                             <td>{{ i.payment_type }}</td>
+                            
                             <td>{{ i.transaction_dt|date:"D\, M d, Y h:i A" }}</td>
                             <td><a href="{% url 'transactionReceipt' transNo=i.transaction_id %}" target="_self" >View Receipt</a></td>
                         </tr>

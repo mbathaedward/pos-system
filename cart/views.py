@@ -2,16 +2,17 @@ from django.shortcuts import redirect
 from django.contrib.auth.decorators import login_required
 from inventory.models import product as Product
 from .models import Cart
+from django.contrib import messages
 
 
 @login_required(login_url="/user/login")
 def cart_add(request, id, qty):
     cart = Cart(request)
-
     try:
         product = Product.objects.get(barcode=id)
     except Product.DoesNotExist:
-        return redirect("product_not_found")
+        messages.error(request, "Product does not exist!")
+        return redirect("register")
 
     try:
         qty = int(qty)
@@ -20,6 +21,7 @@ def cart_add(request, id, qty):
     except ValueError:
         qty = 1
 
+
     cart.add(product=product, quantity=qty)
     return redirect('register')
 
@@ -27,39 +29,38 @@ def cart_add(request, id, qty):
 @login_required(login_url="/user/login")
 def item_clear(request, id):
     cart = Cart(request)
-
     try:
         product = Product.objects.get(barcode=id)
         cart.remove(product)
     except Product.DoesNotExist:
         pass
-
     return redirect("cart_detail")
 
 
 @login_required(login_url="/user/login")
 def item_increment(request, id):
     cart = Cart(request)
-
     try:
         product = Product.objects.get(barcode=id)
-        cart.add(product=product)
+        stock = product.quantity or 0
+
+   
+       
+
+        cart.add(product=product, quantity=1)
     except Product.DoesNotExist:
         pass
-
     return redirect("cart_detail")
 
 
 @login_required(login_url="/user/login")
 def item_decrement(request, id):
     cart = Cart(request)
-
     try:
         product = Product.objects.get(barcode=id)
         cart.decrement(product=product)
     except Product.DoesNotExist:
         pass
-
     return redirect("cart_detail")
 
 

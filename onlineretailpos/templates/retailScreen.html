@@ -10,6 +10,13 @@ Register | Online Retail POS
 {% endblock %}
 
 {% block content %}
+{% if messages %}
+  {% for message in messages %}
+    <div style="color:red; font-weight:bold;">
+        {{ message }}
+    </div>
+  {% endfor %}
+{% endif %}
 <div class="row" style="width: 100%;padding-right: 0px;">
     <div class="col-lg-6">
         <div class="row mb-0" style="padding-bottom:5px;">
@@ -166,4 +173,5 @@ Register | Online Retail POS
         return false
     }
 </script>
+
 {% endblock %}
