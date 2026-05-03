@@ -20,7 +20,15 @@ def cart_add(request, id, qty):
             qty = 1
     except ValueError:
         qty = 1
+        
+    print(product.__dict__)
+    stock = product.qty or 0
+    already_in_cart = cart.cart.get(str(product.barcode), {}).get('quantity', 0)
 
+    if already_in_cart + qty > stock:
+        messages.error(request, f"Only {stock} items available. You already have {already_in_cart} in cart!")
+        
+        return redirect("register")
 
     cart.add(product=product, quantity=qty)
     return redirect('register')
@@ -42,10 +50,12 @@ def item_increment(request, id):
     cart = Cart(request)
     try:
         product = Product.objects.get(barcode=id)
-        stock = product.quantity or 0
+        stock = product.qty or 0
+        already_in_cart = cart.cart.get(str(product.barcode), {}).get('quantity', 0)
 
-   
-       
+        if already_in_cart + 1 > stock:
+            messages.error(request, f"Only {stock} items available in the store!")
+            return redirect("cart_detail")
 
         cart.add(product=product, quantity=1)
     except Product.DoesNotExist:

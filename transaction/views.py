@@ -116,15 +116,15 @@ def endTransactionReceipt(request, transNo):
             change = f"""<table class="table text-white h3 p-0 m-0">
                             <tr>
                                 <td class="text-left pl-5"> Total : </td>
-                                <td class="text-right pr-5"> {request.GET["total"]} $</td>
+                                <td class="text-right pr-5"> {request.GET["total"]} ksh</td>
                             </tr>
                             <tr>
                                 <td class="text-left pl-5"> Cash : </td>
-                                <td class="text-right pr-5"> {request.GET["value"]} $</td>
+                                <td class="text-right pr-5"> {request.GET["value"]} ksh</td>
                             </tr>
                             <tr class="h1 badge-danger">
                                 <td style="padding-top:15px"> Change : </td>
-                                <td style="padding-top:15px"> {change * (-1):.2f} $</td>
+                                <td style="padding-top:15px"> {change * (-1):.2f} ksh</td>
                             </tr>
                         </table>"""
         elif request.GET["type"] == "card":
@@ -163,7 +163,7 @@ def endTransaction(request, type, value):
             Cart(request).clear()
             # FIX 1: use return_transaction.total_sale so the redirect
             # carries the corrected total, not the old line_total sum
-            return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}&value={value}&total={return_transaction.total_sale}")
+            return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}ksh value={value}ksh total={return_transaction.total_sale}")
         return redirect("register")
     except Exception as e:
         print(e, type, value, request.user)
