@@ -17,8 +17,8 @@ Sales Dashboard | Online Retail POS
                 <div class="card-header">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
-                            <div class="text-md font-weight-bold text-success text-uppercase mb-1"> Today's Sales </div>
-                            <div class="h3 mb-1 font-weight-bold text-gray-800" style="text-align:right">{{ today_total_sales|floatformat:2 }}</div>
+                            <div class="text-md font-weight-bold text-success text-uppercase mb-1"> ksh Today's Sales </div>
+                            <div class="h3 mb-1 font-weight-bold text-gray-800" style="text-align:right">ksh {{ today_total_sales|floatformat:2 }}</div>
                         </div>    
                         <div class="col-auto">
                             <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
@@ -39,7 +39,7 @@ Sales Dashboard | Online Retail POS
                         <div class="row no-gutters align-items-center">
                             <div class="col mr-2">
                                 <div class="text-xs font-weight-bold text-info text-uppercase mb-1"> {{ key}} </div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800">${{ value|floatformat:2 }}</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800">ksh {{ value|floatformat:2 }}</div>
                             </div>    
                             <div class="col-auto">
                                 <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
