@@ -163,12 +163,12 @@ def endTransaction(request, type, value):
             Cart(request).clear()
             # FIX 1: use return_transaction.total_sale so the redirect
             # carries the corrected total, not the old line_total sum
-            return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}ksh value={value}ksh total={return_transaction.total_sale}")
+            return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}&value={value}&total={return_transaction.total_sale}")
         return redirect("register")
     except Exception as e:
         print(e, type, value, request.user)
         return redirect("register")
-
+    
 
 def addTransaction(user, payment_type, total, cart, value):
     transaction_id = datetime.now().strftime('%Y%m%d%H%M%S%f')
