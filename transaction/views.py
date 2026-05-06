@@ -73,7 +73,7 @@ def transactionView(request, transNo=None):
             start_date = form.cleaned_data['start_date']
     transactions = transaction.objects.filter(
         transaction_dt__date__range=(start_date, end_date)
-    ).order_by('-transaction_dt').values('transaction_dt', 'transaction_id', 'total_sale', 'payment_type')
+    ).order_by('-transaction_dt').values('transaction_dt', 'transaction_id', 'total_sale', 'payment_type', 'payment_status', 'amount_paid', 'balance_due')
     return render(request, 'transactions.html', context={'transactions': transactions, 'form': form})
 
 
@@ -109,39 +109,66 @@ def recallTransaction(request, recallTransNo=None):
 
 
 @login_required(login_url="/user/login/")
+@login_required(login_url="/user/login/")
 def endTransactionReceipt(request, transNo):
     try:
+        obj = transaction.objects.get(transaction_id=transNo)
+
         if request.GET["type"] == "cash":
-            change = float(request.GET["value"]) - float(request.GET["total"])
-            change = f"""<table class="table text-white h3 p-0 m-0">
+            amount_paid = float(request.GET["value"])
+            total       = float(request.GET["total"])
+            balance_due = total - amount_paid
+
+            if balance_due <= 0:
+                # Full payment — show change
+                change_html = f"""<table class="table text-white h3 p-0 m-0">
+                                <tr>
+                                    <td class="text-left pl-5"> Total : </td>
+                                    <td class="text-right pr-5"> {total:.2f} ksh</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-left pl-5"> Cash : </td>
+                                    <td class="text-right pr-5"> {amount_paid:.2f} ksh</td>
+                                </tr>
+                                <tr class="h1 badge-success">
+                                    <td style="padding-top:15px"> Change : </td>
+                                    <td style="padding-top:15px"> {abs(balance_due):.2f} ksh</td>
+                                </tr>
+                            </table>"""
+            else:
+                # Partial payment — show balance due
+                change_html = f"""<table class="table text-white h3 p-0 m-0">
+                                <tr>
+                                    <td class="text-left pl-5"> Total : </td>
+                                    <td class="text-right pr-5"> {total:.2f} ksh</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-left pl-5"> Amount Paid : </td>
+                                    <td class="text-right pr-5"> {amount_paid:.2f} ksh</td>
+                                </tr>
+                                <tr class="h1 badge-danger">
+                                    <td style="padding-top:15px"> Balance Due : </td>
+                                    <td style="padding-top:15px"> {balance_due:.2f} ksh</td>
+                                </tr>
+                            </table>
+                            <div class="h2 badge-warning p-3">PARTIAL PAYMENT</div>"""
+
+        elif request.GET["type"] == "card":
+            change_html = f"""<table class="table text-white h3 p-0 m-0">
                             <tr>
                                 <td class="text-left pl-5"> Total : </td>
                                 <td class="text-right pr-5"> {request.GET["total"]} ksh</td>
-                            </tr>
-                            <tr>
-                                <td class="text-left pl-5"> Cash : </td>
-                                <td class="text-right pr-5"> {request.GET["value"]} ksh</td>
-                            </tr>
-                            <tr class="h1 badge-danger">
-                                <td style="padding-top:15px"> Change : </td>
-                                <td style="padding-top:15px"> {change * (-1):.2f} ksh</td>
-                            </tr>
-                        </table>"""
-        elif request.GET["type"] == "card":
-            change = f"""<table class="table text-white h3 p-0 m-0">
-                            <tr>
-                                <td class="text-left pl-5"> Total : </td>
-                                <td class="text-right pr-5"> {request.GET["total"]} $</td>
                                 <td class="text-left pl-5"> Card : </td>
                                 <td class="text-right pr-5"> {request.GET["value"]}</td>
                             </tr>
                         </table>
                         <div class="h1 badge-danger p-3">CARD TRANSACTION</div>"""
 
-        obj = transaction.objects.get(transaction_id=transNo)
-        return render(request, 'endTransaction.html', context={'receipt': obj.receipt, 'change': change})
+        return render(request, 'endTransaction.html', context={'receipt': obj.receipt, 'change': change_html})
     except transaction.DoesNotExist:
         raise Http404("No Transactions Found!!!")
+
+        
 
 
 @login_required(login_url="/user/login/")
@@ -157,12 +184,10 @@ def endTransaction(request, type, value):
                 return_transaction = addTransaction(request.user, "DEBIT/CREDIT", total, cart, total)
         elif type == "cash":
             value = round(float(value), 2)
-            if value >= total:
+            if value > 0:
                 return_transaction = addTransaction(request.user, "CASH", total, cart, value)
         if return_transaction:
             Cart(request).clear()
-            # FIX 1: use return_transaction.total_sale so the redirect
-            # carries the corrected total, not the old line_total sum
             return redirect(f"/endTransaction/{return_transaction.transaction_id}/?type={type}&value={value}&total={return_transaction.total_sale}")
         return redirect("register")
     except Exception as e:
@@ -212,13 +237,19 @@ def addTransaction(user, payment_type, total, cart, value):
     #total = round(sub_total + tax_total, 2)
     total = sub_total
 
+    #partial payment calculations
+    amount_paid = round(value, 2)
+    balance_due = round(total - amount_paid, 2)
+    payment_status = 'PAID' if balance_due <= 0 else 'PARTIAL'
+
+
     # Build receipt
     def safe(val):
         return "" if val is None else str(val)
 
     receipt_lines = []
     for _, row in cart_df.iterrows():
-        # FIX 4: widen columns so price and deposit don't merge visually
+
         line = (
             f"{safe(row.name)+')':<3} {safe(row['name'])[:28]}".ljust(settings.RECEIPT_CHAR_COUNT)
             + "\n"
@@ -249,7 +280,13 @@ def addTransaction(user, payment_type, total, cart, value):
     total_string += "\n" + (" - " * int(settings.RECEIPT_CHAR_COUNT / 3)) + "\n"
     total_string += f"{'TOTAL SALE':>10}: {round(total, 2)}".rjust(settings.RECEIPT_CHAR_COUNT)
     total_string += "\n" + f"{str(payment_type):>10}: ksh {round(value, 2):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
-    total_string += "\n" + f"{'CHANGE':>10}: ksh {round(value - total, 2):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
+    
+    if balance_due <= 0:
+        total_string = "\n" + f"{'CHANGE':>10}: ksh {abs(balance_due):.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
+    else:
+        total_string = "\n" + f"{'AMOUNT PAID':>10}:ksh{amount_paid}".rjust(settings.RECEIPT_CHAR_COUNT)
+        total_string += "\n" + f"{'BALANCE DUE':>10}: ksh {balance_due:.2f}".rjust(settings.RECEIPT_CHAR_COUNT)
+        total_string += "\n" + "*** PARTIAL PAYMENT ***".center(settings.RECEIPT_CHAR_COUNT)
 
     receipt = (
         settings.RECEIPT_HEADER + "\n\n"
@@ -269,6 +306,8 @@ def addTransaction(user, payment_type, total, cart, value):
         sub_total=sub_total,       
         tax_total=tax_total,
         deposit_total=deposit_total,
+        amount_paid=amount_paid,
+        balance_due=balance_due if balance_due > 0 else 0,
         payment_type=payment_type,
         receipt=receipt,
         products=json.dumps(cart_df.to_dict('records')),

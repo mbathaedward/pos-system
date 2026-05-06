@@ -17,6 +17,10 @@ class transaction(models.Model):
     sub_total       = models.DecimalField(max_digits=7, decimal_places=2, null=False, editable=False)
     tax_total       = models.DecimalField(max_digits=7, decimal_places=2, null=True, editable=False)
     deposit_total   = models.DecimalField(max_digits=7, decimal_places=2, null=True, editable=False)
+    #Allow partial payment
+    amount_paid = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, editable=False)
+    balance_due = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, editable=False)
+    payment_status = models.CharField(max_length=16, default='PAID', editable=False)#paid or partial 
     payment_type    = models.CharField(choices=[('CASH','CASH'),('DEBIT/CREDIT','DEBIT/CREDIT'),('EBT','EBT')], max_length=32, null=False, editable=False)
     receipt         = models.TextField(blank=False, null=False, editable=False)
     products        = models.TextField(blank=False, null=False, editable=False)
